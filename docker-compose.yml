@@ -4,10 +4,8 @@ services:
   db:
     image: postgres:16-alpine
     restart: always
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: movies_db
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
