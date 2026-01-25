@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # DB
-    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/cinema_db"
+    DATABASE_URL: str = "postgresql+asyncpg://admin:password@localhost:5432/movies_db"
 
     # JWT
     SECRET_KEY: str = "GXrxFAYGuV84aT9Ev0jI6MqT56ZiGJWj-SyJRd618sY"
