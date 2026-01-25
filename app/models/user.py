@@ -14,7 +14,12 @@ from sqlalchemy import (
     Date,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+    validates
+)
 
 from app.database import Base
 from app.core.security import hash_password, verify_password, generate_secure_token
