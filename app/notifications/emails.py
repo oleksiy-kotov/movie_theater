@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader
-from exceptions import BaseEmailError
+from app.exceptions import BaseEmailError
 from app.notifications.interfaces import EmailSenderInterface
 
 logger = logging.getLogger(__name__)
