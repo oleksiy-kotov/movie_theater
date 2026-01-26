@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Base dir
-    BASE_DIR: Path = Path(__file__).parent.parent
+    BASE_DIR: Path = Path(__file__).resolve().parent
 
     # PostgreSQL
     POSTGRES_DB: str
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     MAILHOG_API_PORT: int = 8025
 
     # Path to email templates
-    PATH_TO_EMAIL_TEMPLATES_DIR: str = str(BASE_DIR / "templates" / "emails")
+    PATH_TO_EMAIL_TEMPLATES_DIR: str = str(BASE_DIR / "notifications" / "templates")
     ACTIVATION_EMAIL_TEMPLATE_NAME: str = "activation_request.html"
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
     PASSWORD_RESET_TEMPLATE_NAME: str = "password_reset_request.html"

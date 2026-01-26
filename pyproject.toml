@@ -10,12 +10,14 @@ asyncpg = "^0.31.0"
 pydantic-settings = "^2.12.0"
 alembic = "^1.18.1"
 sqlalchemy = {extras = ["email"], version = "^2.0.46"}
-passlib = "^1.7.4"
 email-validator = "^2.3.0"
 python-jose = "^3.5.0"
 psycopg2-binary = "^2.9.11"
 aiosmtplib = "^5.1.0"
 jinja2 = "^3.1.6"
+aioboto3 = "^15.5.0"
+validators = "^0.35.0"
+bcrypt = "^5.0.0"
 
 [dependency-groups]
 dev = [
