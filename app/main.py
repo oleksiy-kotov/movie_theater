@@ -1,20 +1,20 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.database import AsyncSession
+
+from app.api.routes import users
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with AsyncSession() as session:
-        yield session
+    # Startup
+    print("Application is starting up...")
+
+    yield
+
+    # Shutdown
+    print("Application is shutting down...")
 app = FastAPI(
     lifespan=lifespan,
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to Online Cinema API"}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+app.include_router(users.router, prefix="/accounts", tags=["Accounts"])

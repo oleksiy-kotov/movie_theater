@@ -119,6 +119,7 @@ class UserModel(Base):
 
     @password.setter
     def password(self, raw_password: str) -> None:
+        print(f"DEBUG: Password to hash length: {len(raw_password)}")
         self._hashed_password = hash_password(raw_password)
 
     def verify_password(self, raw_password: str) -> bool:
