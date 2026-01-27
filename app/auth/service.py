@@ -1,12 +1,11 @@
-from fastapi import Depends, status, HTTPException
+from fastapi import status, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.dependencies import get_accounts_email_notificator
 from app.database import AsyncSession
-from app.models.user import UserModel, UserGroupModel, UserGroupEnum, ActivationTokenModel
+from app.auth.models import UserModel, UserGroupModel, UserGroupEnum, ActivationTokenModel
 from app.notifications.interfaces import EmailSenderInterface
-from app.schemas.user import (
+from app.auth.schemas import (
     UserRegistrationRequestSchema,
     UserRegistrationResponseSchema,
 )

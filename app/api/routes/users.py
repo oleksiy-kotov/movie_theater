@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_accounts_email_notificator
 from app.database import get_db
-from app.schemas.user import UserRegistrationResponseSchema, UserRegistrationRequestSchema
-from app.services.user_service import register_user
+from app.auth.schemas import UserRegistrationResponseSchema, UserRegistrationRequestSchema
+from app.auth.service import register_user
 
 router = APIRouter()
 
