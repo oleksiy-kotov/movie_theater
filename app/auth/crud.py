@@ -4,6 +4,7 @@ from sqlalchemy.orm import joinedload
 from app.auth.models import UserModel, UserGroupModel, UserGroupEnum
 from app.database import AsyncSession
 from app.auth.models import ActivationTokenModel
+from app.auth.models import RefreshTokenModel
 
 
 async def get_group_by_name(db: AsyncSession, name: UserGroupEnum):
@@ -49,4 +50,23 @@ async def get_token_with_user(db: AsyncSession, token_id: int):
 async def activate_user(db: AsyncSession, user: UserModel, token: ActivationTokenModel):
     user.is_active = True
     await db.delete(token)
+    await db.commit()
+
+async def create_refresh_token(db: AsyncSession, user_id: int, token: str, days_valid: int = 5):
+    db_token = RefreshTokenModel.create(
+        user_id=user_id,
+        token=token,
+        days_valid=days_valid,
+    )
+    db.add(db_token)
+    await db.commit()
+    await db.refresh(db_token)
+    return db_token
+
+async def get_refresh_token(db: AsyncSession, token: str):
+    result = await db.execute(select(RefreshTokenModel).where(RefreshTokenModel.token == token))
+    return result.scalar_one_or_none()
+
+async def delete_refresh_token(db: AsyncSession, token: str):
+    await db.execute(delete(RefreshTokenModel).where(RefreshTokenModel.token == token))
     await db.commit()

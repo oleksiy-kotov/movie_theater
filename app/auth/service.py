@@ -12,6 +12,7 @@ from app.auth import crud
 from app.core import security
 from app.auth.crud import get_token_with_user
 from app.core.interface import JWTAuthManagerInterface
+from app.auth.crud import create_refresh_token
 
 
 async def register_user(
@@ -79,19 +80,26 @@ async def login_user(
     db: AsyncSession, email: str, password: str, jwt_manager: JWTAuthManagerInterface
 ):
     user = await crud.get_user_by_email(db, email)
-    if not user or security.verify_password(password, user._hashed_password):
+    if not user or not security.verify_password(password, user._hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User credentials were not provided.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Incorrect email or password.",
         )
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Inactive user",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is not activated. Please check your email.",
         )
     token_data = {"sub": user.email}
     access_token = jwt_manager.create_access_token(data=token_data)
     refresh_token = jwt_manager.create_refresh_token(data=token_data)
+
+    await create_refresh_token(
+        db,
+        user_id=user.id,
+        token=refresh_token,
+        days_valid=5
+    )
 
     return {
         "access_token": access_token,

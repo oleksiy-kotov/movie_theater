@@ -14,6 +14,7 @@ from app.auth.service import register_user, deactivate_user, login_user
 from app.auth.service import activate_user_account
 from app.auth.dependencies import get_jwt_auth_manager, get_current_user
 from app.auth.models import UserModel
+from app.auth.crud import get_refresh_token, delete_refresh_token
 
 auth_router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
@@ -62,9 +63,23 @@ async def login(
 
 
 @auth_router.get("/me")
-async def read_users_me(current_user: UserModel = Depends(get_current_user)):
+async def get_my_profile(current_user: UserModel = Depends(get_current_user)):
     return {
-        "id": current_user.id,
         "email": current_user.email,
-        "is_active": current_user.is_active,
+        "status": "Activate" if current_user.is_active else "Pending",
+        "registered_on": current_user.created_at,
     }
+
+
+@auth_router.post("/logout")
+async def logout(
+    refresh_token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    db_token = await get_refresh_token(db, token=refresh_token)
+    if not db_token:
+        raise HTTPException(status_code=404, detail="Token not found")
+
+    await delete_refresh_token(db, token=refresh_token)
+
+    return {"message": "Logged out successfully"}
