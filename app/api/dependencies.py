@@ -3,10 +3,8 @@ from functools import lru_cache
 
 
 from app.config import Settings
-from app.core.interface import JWTAuthManagerInterface
 from app.notifications.emails import EmailSender
 from app.notifications.interfaces import EmailSenderInterface
-from app.core.token_manager import JWTAuthManager
 from storages.interfaces import S3StorageInterface
 from storages.s3 import S3StorageClient
 
@@ -16,14 +14,6 @@ from storages.s3 import S3StorageClient
 def get_settings() -> Settings:
     return Settings()
 
-def get_jwt_auth_manager(
-    settings: Settings = Depends(get_settings)
-) -> JWTAuthManagerInterface:
-    return JWTAuthManager(
-        secret_key_access=settings.SECRET_KEY_ACCESS,
-        secret_key_refresh=settings.SECRET_KEY_REFRESH,
-        algorithm=settings.JWT_SIGNING_ALGORITHM
-    )
 
 def get_accounts_email_notificator(
     settings: Settings = Depends(get_settings)

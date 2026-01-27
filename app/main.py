@@ -1,8 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-
-from app.api.routes import users
-
+from app.auth.router import auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,4 +15,4 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(users.router, prefix="/accounts", tags=["Accounts"])
+app.include_router(auth_router)

@@ -1,14 +1,17 @@
 from fastapi import status, HTTPException
-from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import AsyncSession
-from app.auth.models import UserModel, UserGroupModel, UserGroupEnum, ActivationTokenModel
+from app.auth.models import UserGroupEnum
 from app.notifications.interfaces import EmailSenderInterface
 from app.auth.schemas import (
     UserRegistrationRequestSchema,
     UserRegistrationResponseSchema,
 )
+from app.auth import crud
+from app.core import security
+from app.auth.crud import get_token_with_user
+from app.core.interface import JWTAuthManagerInterface
 
 
 async def register_user(
@@ -16,45 +19,82 @@ async def register_user(
     user_data: UserRegistrationRequestSchema,
     email_sender: EmailSenderInterface,
 ) -> UserRegistrationResponseSchema:
-    result = await db.execute(select(UserModel).where(UserModel.email == user_data.email))
-    existing_user = result.scalars().first()
+    hashed_password = security.hash_password(user_data.password)
+    user_dict = {"email": str(user_data.email), "password": hashed_password}
+
+    user_group = await crud.get_group_by_name(db, UserGroupEnum.USER)
+    if not user_group:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Default user group not found.",
+        )
+
+    existing_user = await crud.get_user_by_email(db, user_data.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"A user with this email {user_data.email} already exists.",
         )
-    group_result = await db.execute(select(UserGroupModel).where(UserGroupModel.name == UserGroupEnum.USER))
-    user_group = group_result.scalars().first()
-    if not user_group:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Default user group not found."
-        )
     try:
-        new_user = UserModel.create(
-            email=str(user_data.email),
-            raw_password=user_data.password,
-            group_id=user_group.id,
-        )
-        db.add(new_user)
-        await db.flush()
+        new_user, token = await crud.create_user(db, user_dict, user_group.id)
 
-        activation_token = ActivationTokenModel(user_id=new_user.id)
-        db.add(activation_token)
-        await db.commit()
-        await db.refresh(new_user)
+        activation_link = f"http://127.0.0.1:8000/accounts/activate/{token.id}"
+        await email_sender.send_activation_email(new_user.email, activation_link)
+        return new_user
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred during user creation."
-        ) from e
-    else:
-        activation_link = "http://127.0.0.1/accounts/activate/"
-
-        await email_sender.send_activation_email(
-            new_user.email,
-            activation_link,
         )
 
-        return UserRegistrationResponseSchema.model_validate(new_user)
+
+async def deactivate_user(db: AsyncSession, user_id: int):
+    success = await crud.delete_user(db, user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} was not found.",
+        )
+    return {"detail": f"User with id {user_id} was successfully deactivated."}
+
+
+async def activate_user_account(
+    db: AsyncSession,
+    token_id: int,
+):
+    token_obj = await get_token_with_user(db, token_id)
+    if not token_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired activation link",
+        )
+    user = token_obj.user
+    if user.is_active:
+        return {"message": "Account already activated."}
+    await crud.activate_user(db, user, token_obj)
+    return {"message": "Account has been activated."}
+
+
+async def login_user(
+    db: AsyncSession, email: str, password: str, jwt_manager: JWTAuthManagerInterface
+):
+    user = await crud.get_user_by_email(db, email)
+    if not user or security.verify_password(password, user._hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User credentials were not provided.",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Inactive user",
+        )
+    token_data = {"sub": user.email}
+    access_token = jwt_manager.create_access_token(data=token_data)
+    refresh_token = jwt_manager.create_refresh_token(data=token_data)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
