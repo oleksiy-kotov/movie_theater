@@ -1,13 +1,15 @@
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from app.api.dependencies import get_settings
 from app.config import Settings
 from app.core.interface import JWTAuthManagerInterface
 from app.core.token_manager import JWTAuthManager
-from app.auth.crud import get_user_by_email
 from app.database import AsyncSession, get_db
+from app.auth import crud
+from app.auth.models import UserModel
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="accounts/login")
+security_scheme = HTTPBearer()
 
 def get_jwt_auth_manager(
     settings: Settings = Depends(get_settings),
@@ -19,17 +21,28 @@ def get_jwt_auth_manager(
     )
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: HTTPAuthorizationCredentials = Depends(security_scheme),
     db: AsyncSession = Depends(get_db),
     jwt_manager: JWTAuthManager = Depends(get_jwt_auth_manager),
-):
-    payload = jwt_manager.decode_access_token(token)
+) -> UserModel:
+    token_str = token.credentials
+    payload = jwt_manager.decode_access_token(token_str)
     if not payload:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials"
+        )
 
-    email = payload.get("sub")
-    user = await get_user_by_email(db, email)
+    user_id = payload.get("sub")
+    user = await  crud.get_user_by_id(db, user_id=int(user_id))
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="User account is deactivated"
+        )
     return user

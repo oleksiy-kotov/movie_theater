@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
 
     # MinIO
-    S3_STORAGE_HOST: str = os.getenv("MINIO_HOST", "minio-theater")
+    S3_STORAGE_HOST: str = os.getenv("MINIO_HOST", "127.0.0.1")
     S3_STORAGE_PORT: int = os.getenv("MINIO_PORT", 9000)
     S3_STORAGE_ACCESS_KEY: str = os.getenv("MINIO_ROOT_USER", "minioadmin")
     S3_STORAGE_SECRET_KEY: str = os.getenv("MINIO_ROOT_PASSWORD", "some_password")

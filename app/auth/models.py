@@ -119,7 +119,6 @@ class UserModel(Base):
 
     @password.setter
     def password(self, raw_password: str) -> None:
-        print(f"DEBUG: Password to hash length: {len(raw_password)}")
         self._hashed_password = hash_password(raw_password)
 
     def verify_password(self, raw_password: str) -> bool:
@@ -156,7 +155,7 @@ class TokenBaseModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     token: Mapped[str] = mapped_column(
-        String(64),
+        String(512),
         unique=True,
         nullable=False,
         default=generate_secure_token,
@@ -204,7 +203,7 @@ class RefreshTokenModel(TokenBaseModel):
 
     user: Mapped[UserModel] = relationship("UserModel", back_populates="refresh_tokens")
     token: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, default=generate_secure_token
+        String(512), unique=True, nullable=False, default=generate_secure_token
     )
 
     @classmethod
