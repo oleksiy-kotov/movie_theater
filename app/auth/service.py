@@ -14,6 +14,7 @@ from app.auth.schemas import (
     MessageResponseSchema,
     PasswordResetRequestSchema,
     PasswordResetCompleteSchema,
+    ResendEmailRequestSchema,
 )
 from app.auth import crud
 from app.core import security
@@ -102,6 +103,43 @@ async def activate_user_account(
     return MessageResponseSchema(
         message="Account activated and confirmation email sent!"
     )
+
+async def resend_activation_token(
+    db: AsyncSession,
+    email_data: ResendEmailRequestSchema,
+    email_sender: EmailSenderInterface,
+) -> MessageResponseSchema:
+
+    user = await crud.get_user_by_email(db, email_data.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email not found.",
+        )
+
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account already activated.",
+        )
+
+    try:
+        await crud.delete_old_activation_tokens(db, user_id=user.id)
+        new_token = await crud.create_activation_token(db, user_id=user.id)
+
+        activation_link = f"{BASE_URL}/accounts/activate/{new_token.secret}"
+        await email_sender.send_activation_email(user.email, activation_link)
+
+        await db.commit()
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not resend activation email.",
+        ) from e
+
+    return MessageResponseSchema(message="New activation link sent to your email.")
 
 
 async def login_user(

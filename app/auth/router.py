@@ -11,7 +11,10 @@ from app.auth.schemas import (
     PasswordResetRequestSchema,
     PasswordResetCompleteSchema,
     MessageResponseSchema,
-    UserLoginRequestSchema, ProfileResponseSchema, ProfileCreateSchema,
+    UserLoginRequestSchema,
+    ProfileResponseSchema,
+    ProfileCreateSchema,
+    ResendEmailRequestSchema,
 )
 from app.auth.dependencies import get_jwt_auth_manager, get_current_user
 from app.auth.models import UserModel
@@ -95,6 +98,24 @@ async def activate(
     """Endpoint to activate a user's account."""
     return await service.activate_user_account(db, token_id, email_sender)
 
+
+@auth_router.post(
+    "/resend-activation",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Request a new activation email",
+)
+async def resend_activation(
+    email_data: ResendEmailRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+):
+
+    return await service.resend_activation_token(
+        db=db,
+        email_data=email_data,
+        email_sender=email_sender
+    )
 
 @auth_router.post(
     "/login",

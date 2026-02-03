@@ -49,6 +49,11 @@ class UserActivationRequestSchema(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+class ResendEmailRequestSchema(BaseModel):
+    email: EmailStr
+
+    model_config = ConfigDict(extra="forbid")
+
 # Password reset
 class PasswordResetRequestSchema(BaseModel):
     email: EmailStr
