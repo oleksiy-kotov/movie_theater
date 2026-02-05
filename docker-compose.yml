@@ -1,5 +1,17 @@
 
 services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+
   db:
     image: postgres:16-alpine
     restart: always
@@ -14,6 +26,32 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    command: python -m celery -A app.auth.tasks:celery_app worker --loglevel=info -P solo
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+
+  beat:
+    build: .
+    command: python -m celery -A app.auth.tasks:celery_app beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    env_file:
+      - .env
 
   mailhog:
     image: mailhog/mailhog

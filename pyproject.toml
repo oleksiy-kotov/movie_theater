@@ -1,6 +1,8 @@
 [tool.poetry]
-name = "src"
+name = "movie-theater"
 version = "0.1.0"
+description = "Movie theater project"
+authors = ["Oleksiy Kotov <kotov.oleksiy@icloud.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.12"

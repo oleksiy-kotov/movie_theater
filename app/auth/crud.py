@@ -13,9 +13,11 @@ from app.database import AsyncSession
 from app.auth.models import ActivationTokenModel
 from app.auth.models import RefreshTokenModel
 
+
 async def get_group_by_name(db: AsyncSession, name: UserGroupEnum):
     result = await db.execute(select(UserGroupModel).where(UserGroupModel.name == name))
     return result.scalars().first()
+
 
 async def get_user_by_id(db: AsyncSession, user_id: int):
     stmt = (
@@ -25,6 +27,7 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
 
 async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(UserModel).where(UserModel.email == email))
@@ -46,6 +49,7 @@ async def create_user(db: AsyncSession, email: str, password: str, group_id: int
 
     return new_user, token
 
+
 async def get_token_with_user(db: AsyncSession, token_id: int):
     stmt = (
         select(ActivationTokenModel)
@@ -55,16 +59,26 @@ async def get_token_with_user(db: AsyncSession, token_id: int):
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+
 async def create_activation_token(db: AsyncSession, user_id: int):
     new_token = ActivationTokenModel(user_id=user_id)
     db.add(new_token)
     await db.flush()
     return new_token
 
+
 async def delete_old_activation_tokens(db: AsyncSession, user_id: int):
     stmt = delete(ActivationTokenModel).where(ActivationTokenModel.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def delete_expired_activation_tokens(db: AsyncSession):
+    now = datetime.now(timezone.utc)
+    result = await db.execute(delete(ActivationTokenModel).where(ActivationTokenModel.expires_at <= now))
+    await db.commit()
+    return result.rowcount
+
 
 async def activate_user(db: AsyncSession, user: UserModel, token: ActivationTokenModel):
     user.is_active = True
@@ -75,7 +89,7 @@ async def activate_user(db: AsyncSession, user: UserModel, token: ActivationToke
 
 
 async def create_refresh_token(
-    db: AsyncSession, user_id: int, token: str, days_valid: int = 5
+        db: AsyncSession, user_id: int, token: str, days_valid: int = 5
 ):
     db_token = RefreshTokenModel.create(
         user_id=user_id,
@@ -155,6 +169,7 @@ async def create_user_profile(db: AsyncSession, profile_obj: UserProfileModel):
     await db.commit()
     await db.refresh(profile_obj)
     return profile_obj
+
 
 async def delete_user(db: AsyncSession, user_id: int):
     stmt = delete(UserModel).where(UserModel.id == user_id)

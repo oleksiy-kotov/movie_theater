@@ -54,6 +54,7 @@ async def register_user(
             password=user_data.password,
             group_id=user_group.id,
         )
+        await db.commit()
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(
