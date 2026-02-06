@@ -3,6 +3,8 @@ from uuid import UUID
 from decimal import Decimal
 from typing import List, Optional
 
+from app.movies.models import ReactionType
+
 
 class GenreBase(BaseModel):
     id: int
@@ -63,3 +65,21 @@ class MovieShortResponse(BaseModel):
     price: Decimal
 
     model_config = ConfigDict(from_attributes=True)
+
+class MovieDetailResponse(MovieResponse):
+    avg_rating: float = 0.0
+    likes_count: int = 0
+    dislikes_count: int = 0
+    comments_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReactionCreate(BaseModel):
+    reaction_type: ReactionType
+
+
+class ReactionResponse(BaseModel):
+    likes: int
+    dislikes: int
+    my_reaction: Optional[ReactionType] = None

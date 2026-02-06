@@ -1,13 +1,25 @@
-from typing import List
-
-from sqlalchemy import select, desc, asc
+from sqlalchemy import select, desc, asc, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.movies.models import MovieModel, GenreModel, StarModel, DirectorModel
-from app.movies.schemas import MovieCreate, MovieResponse
+from app.movies.models import MovieModel, GenreModel, StarModel, DirectorModel, MovieReactionModel, ReactionType
+from app.movies.schemas import MovieCreate
 
 
-async def create_movie(db: AsyncSession, movie_data: MovieCreate) -> MovieResponse:
+async def get_movie_by_id(db: AsyncSession, movie_id: int):
+    stmt = (
+        select(MovieModel)
+        .where(MovieModel.id == movie_id)
+        .options(selectinload(MovieModel.directors),
+                 selectinload(MovieModel.genres),
+                 selectinload(MovieModel.stars),
+                 selectinload(MovieModel.certification)
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def create_movie(db: AsyncSession, movie_data: MovieCreate):
     data = movie_data.model_dump(exclude={"genres_ids", "director_ids", "star_ids"})
     new_movie = MovieModel(**data)
 
@@ -28,7 +40,7 @@ async def create_movie(db: AsyncSession, movie_data: MovieCreate) -> MovieRespon
     await db.refresh(new_movie)
     return new_movie
 
-async def get_all_movies(db: AsyncSession, skip: int = 0, limit: int = 10) -> List[MovieResponse]:
+async def get_all_movies(db: AsyncSession, skip: int = 0, limit: int = 10):
     result = await db.execute(select(MovieModel).options(
         selectinload(MovieModel.directors),
         selectinload(MovieModel.genres),
@@ -59,3 +71,39 @@ async def get_movies_catalog(
     stmt = select(MovieModel).order_by(sort_func).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return result.scalars().all()
+
+async def get_reaction(db: AsyncSession, movie_id: int, user_id: int):
+    stmt = (
+        select(MovieReactionModel).where(
+            MovieReactionModel.movie_id == movie_id,
+            MovieReactionModel.user_id == user_id
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+async def create_reaction(db: AsyncSession, movie_id: int, user_id: int, reaction_type: ReactionType):
+    new_reaction = MovieReactionModel(
+        user_id=user_id,
+        movie_id=movie_id,
+        reaction_type=reaction_type
+    )
+    db.add(new_reaction)
+    await db.commit()
+    return new_reaction
+
+async def delete_reaction(db: AsyncSession, movie_id: int, user_id: int):
+    stmt = delete(MovieReactionModel).where(
+        MovieReactionModel.movie_id == movie_id,
+        MovieReactionModel.user_id == user_id
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+async def get_reaction_counts(db: AsyncSession, movie_id: int):
+    stmt = (
+        func.count().filter(MovieReactionModel.reaction_type == ReactionType.LIKE).lable("likes"),
+        func.count().filter(MovieReactionModel.reaction_type == ReactionType.DISLIKE).label("dislikes")
+    ).where(MovieReactionModel.movie_id == movie_id)
+    result = await db.execute(stmt)
+    return result.one()

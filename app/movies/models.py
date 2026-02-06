@@ -1,4 +1,5 @@
 import uuid
+import enum
 from sqlalchemy import (
     Column,
     Integer,
@@ -12,7 +13,10 @@ from sqlalchemy import (
     Numeric,
     UUID,
     DateTime,
-    func)
+    func,
+    Enum,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import List, Optional
 from datetime import datetime
@@ -99,3 +103,21 @@ class MovieModel(Base):
     genres: Mapped[List["GenreModel"]] = relationship("GenreModel", secondary=movie_genres, back_populates="movies")
     stars: Mapped[List["StarModel"]] = relationship("StarModel", secondary=movie_stars, back_populates="movies")
     directors: Mapped[List["DirectorModel"]] = relationship("DirectorModel", secondary=movie_directors, back_populates="movies")
+
+
+class ReactionType(enum.Enum):
+    LIKE = "LIKE"
+    DISLIKE = "DISLIKE"
+
+class MovieReactionModel(Base):
+    __tablename__ = "movie_reactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"))
+    reaction_type: Mapped[ReactionType] = mapped_column(Enum(ReactionType))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="unique_user_movie_reaction"),
+    )
