@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.api.dependencies import get_settings
@@ -46,3 +46,19 @@ async def get_current_user(
             detail="User account is deactivated"
         )
     return user
+
+async def get_current_moderator(current_user: UserModel = Depends(get_current_user)):
+    allowed_roles = ["moderator", "admin"]
+    if not current_user.group or current_user.group.name not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Moderator not allowed"
+        )
+    return current_user
+async def get_current_admin(current_user: UserModel = Depends(get_current_user)):
+    if not current_user.group or current_user.group.name != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User doesn't have admin privileges"
+        )
+    return current_user

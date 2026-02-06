@@ -91,6 +91,16 @@ class TokenRefreshResponseSchema(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
 
+
+class UserListSchema(BaseModel):
+    id: int
+    email: EmailStr
+    is_active: bool
+    group_id: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProfileCreateSchema(BaseModel):
     first_name: str
     last_name: str

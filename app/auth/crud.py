@@ -33,6 +33,9 @@ async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(UserModel).where(UserModel.email == email))
     return result.scalar_one_or_none()
 
+async def get_all_users(db: AsyncSession):
+    result = await db.execute(select(UserModel).order_by(UserModel.email))
+    return result.scalars().all()
 
 async def create_user(db: AsyncSession, email: str, password: str, group_id: int):
     new_user = UserModel.create(email=email, raw_password=password, group_id=group_id)
@@ -49,6 +52,13 @@ async def create_user(db: AsyncSession, email: str, password: str, group_id: int
 
     return new_user, token
 
+async def update_user_status(db: AsyncSession, user_id: int, is_active: bool):
+    user = await db.get(UserModel, user_id)
+    if user:
+        user.is_active = is_active
+        await db.commit()
+        await db.refresh(user)
+    return user
 
 async def get_token_with_user(db: AsyncSession, token_id: int):
     stmt = (

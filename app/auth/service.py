@@ -317,3 +317,15 @@ async def setup_profile(
         avatar=avatar_key,
     )
     return await crud.create_user_profile(db, new_profile)
+
+
+async def list_all_users(db: AsyncSession):
+    return await crud.get_all_users(db=db)
+
+async def manually_activate_user_service(
+    db: AsyncSession, user_id: int ):
+    user = await crud.update_user_status(db, user_id=user_id, is_active=True)
+    if not user:
+        return None
+    await crud.delete_old_activation_tokens(db, user_id=user_id)
+    return user

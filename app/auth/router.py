@@ -15,12 +15,14 @@ from app.auth.schemas import (
     ProfileResponseSchema,
     ProfileCreateSchema,
     ResendEmailRequestSchema,
+    UserListSchema,
 )
 from app.auth.dependencies import get_jwt_auth_manager, get_current_user
 from app.auth.models import UserModel
 from app.auth.schemas import TokenRefreshRequestSchema, TokenRefreshResponseSchema
 from app.notifications.interfaces import EmailSenderInterface
 from app.auth import service
+from app.auth.dependencies import get_current_admin
 from storages.interfaces import S3StorageInterface
 
 auth_router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -306,11 +308,17 @@ async def logout(
 async def deactivate(
     user_id: int,
     db: AsyncSession = Depends(get_db),
+    admin: UserModel = Depends(get_current_admin),
 ):
     return await service.deactivate_user(db, user_id)
 
 
-@auth_router.post("/{user_id}/profile", response_model=ProfileResponseSchema)
+@auth_router.post(
+    "/{user_id}/profile",
+    response_model=ProfileResponseSchema,
+    summary="Create user profile",
+    status_code=status.HTTP_201_CREATED
+)
 async def create_profile(
         user_id: int,
         current_user: UserModel = Depends(get_current_user),
@@ -318,6 +326,8 @@ async def create_profile(
         s3_client: S3StorageInterface = Depends(get_s3_storage_client),
         profile_data: ProfileCreateSchema = Depends(ProfileCreateSchema.from_form)
 ):
+    """Creates a user profile."""
+
     profile = await service.setup_profile(db, user_id, current_user, profile_data, s3_client)
     avatar_url = await s3_client.get_file_url(profile.avatar)
     profile_schema = ProfileResponseSchema(
@@ -333,7 +343,13 @@ async def create_profile(
 
     return profile_schema.model_dump()
 
-@auth_router.get("/me", response_model=ProfileResponseSchema)
+@auth_router.get(
+    "/me",
+    response_model=ProfileResponseSchema,
+    summary="Get profile current user",
+    description="Return details information about the current user.",
+    status_code=status.HTTP_200_OK,
+)
 async def get_my_profile(current_user: UserModel = Depends(get_current_user)):
     profile = current_user.profile
 
@@ -344,3 +360,31 @@ async def get_my_profile(current_user: UserModel = Depends(get_current_user)):
         )
 
     return ProfileResponseSchema.model_validate(profile)
+
+@auth_router.get(
+    "/users",
+    response_model=list[UserListSchema],
+    summary="Get all users(only for admin)",
+    status_code=status.HTTP_200_OK,
+    description="Admin can see all users.",
+
+)
+async def list_users(
+        db: AsyncSession = Depends(get_db),
+        admin: UserModel = Depends(get_current_admin)
+):
+    return await service.list_all_users(db)
+
+@auth_router.post(
+    "/users/{user_id}/activate",
+    summary="Handle user activation by admin",
+    description="Admin can activate user. "
+                "It`s is_activated flag set to true and delete activation token.",
+
+)
+async def manual_activate(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: UserModel = Depends(get_current_admin)
+):
+    return await service.manually_activate_user_service(db, user_id)
