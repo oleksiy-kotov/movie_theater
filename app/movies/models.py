@@ -1,10 +1,22 @@
 import uuid
-from typing import List, Optional
-from decimal import Decimal
-from datetime import date, time
-
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Table, Float, Date, Time, Numeric, UUID
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    ForeignKey,
+    Table,
+    Float,
+    Date,
+    Time,
+    Numeric,
+    UUID,
+    DateTime,
+    func)
 from sqlalchemy.orm import relationship, Mapped, mapped_column
+from typing import List, Optional
+from datetime import datetime
+from decimal import Decimal
 from app.database import Base
 
 
@@ -67,7 +79,7 @@ class MovieModel(Base):
     __tablename__ = "movies"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
+    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     year: Mapped[int] = mapped_column(Integer)
     duration: Mapped[int] = mapped_column(Integer)
@@ -78,6 +90,7 @@ class MovieModel(Base):
     description: Mapped[str] = mapped_column(Text)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
 
+    views: Mapped[int] = mapped_column(Integer, default=0)
 
     certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"))
     certification: Mapped["CertificationModel"] = relationship("CertificationModel", back_populates="movies")

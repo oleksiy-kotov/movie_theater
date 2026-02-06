@@ -54,3 +54,12 @@ class MovieResponse(MovieBase):
     directors: List[DirectorBase]
 
     model_config = ConfigDict(from_attributes=True)
+
+class MovieShortResponse(BaseModel):
+    id: int
+    name: str
+    year: int
+    imdb: float
+    price: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
