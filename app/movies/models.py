@@ -1,0 +1,88 @@
+import uuid
+from typing import List, Optional
+from decimal import Decimal
+from datetime import date, time
+
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Table, Float, Date, Time, Numeric, UUID
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from app.database import Base
+
+
+movie_genres = Table(
+    "movie_genres",
+    Base.metadata,
+    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+    Column("genre_id", ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True)
+)
+
+movie_stars = Table(
+    "movie_stars",
+    Base.metadata,
+    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+    Column("star_id", ForeignKey("stars.id", ondelete="CASCADE"), primary_key=True)
+)
+
+movie_directors = Table(
+    "movie_directors",
+    Base.metadata,
+    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+    Column("director_id", ForeignKey("directors.id", ondelete="CASCADE"), primary_key=True)
+)
+
+
+
+class CertificationModel(Base):
+    __tablename__ = "certifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+
+    movies: Mapped[List["MovieModel"]] = relationship("MovieModel", back_populates="certification")
+
+class StarModel(Base):
+    __tablename__ = "stars"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    movies: Mapped[List["MovieModel"]] = relationship("MovieModel", secondary=movie_stars, back_populates="stars")
+
+class GenreModel(Base):
+    __tablename__ = "genres"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+
+    movies: Mapped[List["MovieModel"]] = relationship("MovieModel", secondary=movie_genres, back_populates="genres")
+
+class DirectorModel(Base):
+    __tablename__ = "directors"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    movies: Mapped[List["MovieModel"]] = relationship("MovieModel", secondary=movie_directors, back_populates="directors")
+
+class MovieModel(Base):
+    __tablename__ = "movies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    year: Mapped[int] = mapped_column(Integer)
+    duration: Mapped[int] = mapped_column(Integer)
+    imdb: Mapped[float] = mapped_column(Float, default=0.0)
+    votes: Mapped[int] = mapped_column(Integer, default=0)
+    meta_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    gross: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    description: Mapped[str] = mapped_column(Text)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+
+
+    certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"))
+    certification: Mapped["CertificationModel"] = relationship("CertificationModel", back_populates="movies")
+
+
+    genres: Mapped[List["GenreModel"]] = relationship("GenreModel", secondary=movie_genres, back_populates="movies")
+    stars: Mapped[List["StarModel"]] = relationship("StarModel", secondary=movie_stars, back_populates="movies")
+    directors: Mapped[List["DirectorModel"]] = relationship("DirectorModel", secondary=movie_directors, back_populates="movies")
