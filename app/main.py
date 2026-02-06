@@ -1,7 +1,18 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from app.auth.router import auth_router
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("Application is starting up...")
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+    yield
+
+    # Shutdown
+    print("Application is shutting down...")
+app = FastAPI(
+    lifespan=lifespan,
+)
+
+app.include_router(auth_router)

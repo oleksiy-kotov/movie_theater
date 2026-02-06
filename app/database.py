@@ -6,7 +6,7 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 engine = create_async_engine(settings.DATABASE_URL, echo=True, future=True)
-AsyncSession = async_sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
@@ -19,7 +19,7 @@ class Base(DeclarativeBase):
 
 
 async def get_db():
-    async with AsyncSession(bind=engine) as session:
+    async with AsyncSessionLocal(bind=engine) as session:
         try:
             yield session
         finally:

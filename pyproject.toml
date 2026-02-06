@@ -1,6 +1,8 @@
 [tool.poetry]
-name = "src"
+name = "movie-theater"
 version = "0.1.0"
+description = "Movie theater project"
+authors = ["Oleksiy Kotov <kotov.oleksiy@icloud.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -10,3 +12,18 @@ asyncpg = "^0.31.0"
 pydantic-settings = "^2.12.0"
 alembic = "^1.18.1"
 sqlalchemy = {extras = ["email"], version = "^2.0.46"}
+email-validator = "^2.3.0"
+python-jose = "^3.5.0"
+psycopg2-binary = "^2.9.11"
+aiosmtplib = "^5.1.0"
+jinja2 = "^3.1.6"
+aioboto3 = "^15.5.0"
+validators = "^0.35.0"
+bcrypt = "^5.0.0"
+python-multipart = "^0.0.22"
+pillow = "^12.1.0"
+
+[dependency-groups]
+dev = [
+    "black (>=26.1.0,<27.0.0)"
+]
