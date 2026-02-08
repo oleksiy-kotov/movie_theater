@@ -25,7 +25,7 @@ class CartItemModel(Base):
     movie_id: Mapped[int] = mapped_column(
         ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
     )
-    added_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    added_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
     cart = relationship("CartModel", back_populates="items")
     movie = relationship("MovieModel")
