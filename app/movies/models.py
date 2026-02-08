@@ -121,3 +121,16 @@ class MovieReactionModel(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "movie_id", name="unique_user_movie_reaction"),
     )
+
+
+class CommentModel(Base):
+    __tablename__ = "comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    text: Mapped[str] = mapped_column(String(500), nullable=False)
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+    author: Mapped["UserModel"] = relationship("UserModel", lazy="selectin")
