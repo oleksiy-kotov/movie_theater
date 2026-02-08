@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select, desc, asc, delete, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -11,6 +12,7 @@ from app.movies.models import (
     CommentModel
 )
 from app.movies.schemas import MovieCreate, GenreCreate, StarCreate, DirectorCreate
+from app.cart.models import CartItemModel
 
 
 async def get_genres_with_counts(db: AsyncSession):
@@ -227,6 +229,15 @@ async def get_movies_catalog(
 
 
 async def delete_movie(db: AsyncSession, movie_id: int) -> bool:
+    in_carts_query = await db.execute(
+        select(CartItemModel).where(CartItemModel.movie_id == movie_id).limit(1)
+    )
+    if in_carts_query.scalar():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete movie"
+        )
+
     stmt = delete(MovieModel).where(MovieModel.id == movie_id)
     result = await db.execute(stmt)
     await db.commit()

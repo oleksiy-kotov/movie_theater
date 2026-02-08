@@ -22,7 +22,7 @@ from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 from app.database import Base
-from app.cart.models import user_bought_movies
+from app.cart.models import bought_movies_table
 
 movie_genres = Table(
     "movie_genres",
@@ -106,7 +106,7 @@ class MovieModel(Base):
 
     cart = relationship("CartModel", back_populates="user", uselist=False)
     bought_movies: Mapped[list["MovieModel"]] = relationship(
-        secondary=user_bought_movies,
+        secondary=bought_movies_table,
         backref="owners"
     )
 

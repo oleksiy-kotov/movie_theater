@@ -1,18 +1,19 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Table, Column
+from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Table, Column, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
-user_bought_movies = Table(
+bought_movies_table = Table(
     "user_bought_movies",
     Base.metadata,
-    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
 )
 
 class CartModel(Base):
     __tablename__ = "carts"
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         unique=True
@@ -26,6 +27,7 @@ class CartModel(Base):
 class CartItemModel(Base):
     __tablename__ = "cart_items"
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     cart_id: Mapped[int] = mapped_column(
         ForeignKey("carts.id", ondelete="CASCADE"), primary_key=True
     )
