@@ -260,7 +260,7 @@ async def delete_movie(
     await service.delete_movie(db, movie_id)
     return None # FastAPI автоматично поверне 204
 
-@movie_router.post("/{movie_id}/reaction")
+@movie_router.post("/{movie_id}/reaction", tags=["User Interaction | Reactions"])
 async def add_reaction(
         movie_id: int,
         reaction_data: ReactionCreate,
@@ -275,7 +275,8 @@ async def add_reaction(
     "/{movie_id}/reactions",
     response_model=ReactionResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get all reactions"
+    summary="Get all reactions",
+    tags=["User Interaction | Reactions"]
 )
 async def get_reactions(
         movie_id: int,
@@ -287,6 +288,7 @@ async def get_reactions(
 @movie_router.post(
     "/{movie_id}/comments",
     response_model=CommentResponse,
+    tags=["User Interaction | Reactions"]
 )
 async def post_comment(
         movie_id: int,
