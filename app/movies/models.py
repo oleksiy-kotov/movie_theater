@@ -22,7 +22,7 @@ from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 from app.database import Base
-
+from app.cart.models import user_bought_movies
 
 movie_genres = Table(
     "movie_genres",
@@ -104,6 +104,11 @@ class MovieModel(Base):
     stars: Mapped[List["StarModel"]] = relationship("StarModel", secondary=movie_stars, back_populates="movies")
     directors: Mapped[List["DirectorModel"]] = relationship("DirectorModel", secondary=movie_directors, back_populates="movies")
 
+    cart = relationship("CartModel", back_populates="user", uselist=False)
+    bought_movies: Mapped[list["MovieModel"]] = relationship(
+        secondary=user_bought_movies,
+        backref="owners"
+    )
 
 class ReactionType(enum.Enum):
     LIKE = "LIKE"

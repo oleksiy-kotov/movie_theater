@@ -1,7 +1,14 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
+
+user_bought_movies = Table(
+    "user_bought_movies",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+)
 
 class CartModel(Base):
     __tablename__ = "carts"
