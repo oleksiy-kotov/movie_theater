@@ -6,6 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.auth.models import *
 from app.movies.models import *
+from app.cart.models import *
+from app.orders.models import *
 from alembic import context
 
 from app.database import Base
