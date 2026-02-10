@@ -218,5 +218,5 @@ async def add_comment(
         raise HTTPException(status_code=404, detail="Movie not found")
 
     comment = await crud.create_comments(db, movie_id, user_id, text)
-    await db.refresh(comment, ["user"])
+    await db.refresh(comment, ["author"])
     return comment

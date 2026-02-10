@@ -27,22 +27,6 @@ async def add_movie(
     await service.add_to_cart(db, user.id, item.movie_id)
     return {"message": "Movie added to cart"}
 
-@cart_router.post(
-    "/checkout",
-    response_model=schemas.PurchaseResponse
-)
-async def buy_all(
-    db: AsyncSession = Depends(get_db),
-    user = Depends(get_current_user)
-):
-    """Process payment, move items to collection, and clear cart."""
-    res = await service.checkout_cart(db, user.id)
-    return {
-        "purchased_items_count": res["purchased_items_count"],
-        "total_paid": res["total_paid"],
-        "message": "Purchase successful! Movies added to your collection"
-    }
-
 @cart_router.delete("/items/{movie_id}")
 async def remove_item(
     movie_id: int,

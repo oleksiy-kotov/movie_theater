@@ -2,6 +2,10 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Table, Column, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.movies.models import MovieModel
 
 bought_movies_table = Table(
     "user_bought_movies",
@@ -24,20 +28,23 @@ class CartModel(Base):
         "CartItemModel", back_populates="cart", cascade="all, delete-orphan"
     )
 
+
 class CartItemModel(Base):
     __tablename__ = "cart_items"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
     cart_id: Mapped[int] = mapped_column(
-        ForeignKey("carts.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("carts.id", ondelete="CASCADE")
     )
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("movies.id", ondelete="CASCADE")
     )
+
     added_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
+    movie = relationship("MovieModel", back_populates="cart_items")
     cart = relationship("CartModel", back_populates="items")
-    movie = relationship("MovieModel")
 
     __table_args__ = (
         UniqueConstraint("cart_id", "movie_id", name="uq_cart_movie"),

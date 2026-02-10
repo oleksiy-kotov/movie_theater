@@ -130,8 +130,18 @@ async def create_movie(db: AsyncSession, movie_data: MovieCreate):
 
     db.add(new_movie)
     await db.commit()
-    await db.refresh(new_movie)
-    return new_movie
+
+    result = await db.execute(
+        select(MovieModel)
+        .options(
+            selectinload(MovieModel.genres),
+            selectinload(MovieModel.stars),
+            selectinload(MovieModel.directors),
+            selectinload(MovieModel.certification)
+        )
+        .where(MovieModel.id == new_movie.id)
+    )
+    return result.scalar_one()
 
 
 async def update_movie(db: AsyncSession, movie_id: int, update_data: dict):

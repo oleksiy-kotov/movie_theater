@@ -22,7 +22,7 @@ class GenreUpdate(BaseModel):
 
 class GenreResponse(GenreBase):
     id: int
-    movies_count: int
+    movies_count: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,7 +41,7 @@ class StarUpdate(BaseModel):
 
 class StarResponse(StarBase):
     id: int
-    movies_count: int
+    movies_count: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -60,7 +60,7 @@ class DirectorUpdate(BaseModel):
 
 class DirectorResponse(DirectorBase):
     id: int
-    movies_count: int
+    movies_count: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -83,7 +83,7 @@ class MovieBase(BaseModel):
     votes: int = 0
 
 class MovieCreate(MovieBase):
-    certification_id: int
+    certification_id: Optional[int] = None
     genre_ids: List[int]
     star_ids: List[int]
     director_ids: List[int]
@@ -154,7 +154,7 @@ class CommentResponse(BaseModel):
     text: str
     created_at: datetime
     user_id: int
-    user_name: str
+    user_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

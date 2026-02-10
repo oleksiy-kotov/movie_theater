@@ -18,11 +18,15 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 from decimal import Decimal
 from app.database import Base
-from app.cart.models import bought_movies_table
+from app.cart.models import bought_movies_table, CartItemModel
+
+from typing import TYPE_CHECKING, List
+if TYPE_CHECKING:
+    from app.auth.models import UserModel
 
 movie_genres = Table(
     "movie_genres",
@@ -96,7 +100,7 @@ class MovieModel(Base):
 
     views: Mapped[int] = mapped_column(Integer, default=0)
 
-    certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"))
+    certification_id: Mapped[int | None] = mapped_column(ForeignKey("certifications.id"), nullable=True)
     certification: Mapped["CertificationModel"] = relationship("CertificationModel", back_populates="movies")
 
 
@@ -104,10 +108,13 @@ class MovieModel(Base):
     stars: Mapped[List["StarModel"]] = relationship("StarModel", secondary=movie_stars, back_populates="movies")
     directors: Mapped[List["DirectorModel"]] = relationship("DirectorModel", secondary=movie_directors, back_populates="movies")
 
-    cart = relationship("CartModel", back_populates="user", uselist=False)
-    bought_movies: Mapped[list["MovieModel"]] = relationship(
+    cart_items: Mapped[List["CartItemModel"]] = relationship(
+        "CartItemModel", back_populates="movie", cascade="all, delete-orphan"
+    )
+    buyers: Mapped[List["UserModel"]] = relationship(
+        "UserModel",
         secondary=bought_movies_table,
-        backref="owners"
+        back_populates="bought_movies"
     )
 
 class ReactionType(enum.Enum):

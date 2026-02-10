@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.cart.models import CartModel, CartItemModel, bought_movies_table
 
+
 async def get_or_create_cart(db: AsyncSession, user_id: int):
     stmt = select(CartModel).where(CartModel.user_id == user_id).options(
         selectinload(CartModel.items).selectinload(CartItemModel.movie)
@@ -14,7 +15,10 @@ async def get_or_create_cart(db: AsyncSession, user_id: int):
         cart = CartModel(user_id=user_id)
         db.add(cart)
         await db.commit()
-        await db.refresh(cart)
+
+        result = await db.execute(stmt)
+        cart = result.scalar_one()
+
     return cart
 
 async def add_item_to_cart(db: AsyncSession, cart_id: int, movie_id: int):
@@ -55,3 +59,11 @@ async def get_cart_by_user_id(db: AsyncSession, user_id: int):
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
+async def get_bought_movie_ids(db: AsyncSession, user_id: int) -> set[int]:
+    stmt = select(bought_movies_table.c.movie_id).where(
+        bought_movies_table.c.user_id == user_id
+    )
+    result = await db.execute(stmt)
+
+    return set(result.scalars().all())

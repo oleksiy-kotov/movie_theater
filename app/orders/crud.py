@@ -1,8 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, insert
 from sqlalchemy.orm import selectinload
 from app.orders.models import OrderModel, OrderItemModel, OrderStatus
 from decimal import Decimal
+
+from app.cart.models import bought_movies_table
 
 
 async def get_order_by_id(db: AsyncSession, order_id: int) -> OrderModel:
@@ -31,13 +33,32 @@ async def create_order(db: AsyncSession, user_id: int, total_amount: Decimal, it
         )
         db.add(order_item)
 
-    return new_order
+    await db.commit()
 
+    result = await db.execute(
+        select(OrderModel)
+        .options(
+            selectinload(OrderModel.items).selectinload(OrderItemModel.movie)
+        )
+        .where(OrderModel.id == new_order.id)
+    )
+    return result.scalar_one()
+
+async def add_movies_to_user_library(db: AsyncSession, user_id: int, movie_ids: list[int]):
+    if not movie_ids:
+        return
+    data = [{"user_id": user_id, "movie_id": m_id} for m_id in movie_ids]
+    stmt = insert(bought_movies_table).values(data)
+
+    await db.execute(stmt)
 
 async def update_order_status(db: AsyncSession, order_id: int, status: OrderStatus):
-    query = update(OrderModel).where(OrderModel.id == order_id).values(status=status)
-    await db.execute(query)
-
+    await db.execute(
+        update(OrderModel)
+        .where(OrderModel.id == order_id)
+        .values(status=status)
+    )
+    await db.flush()
 
 async def get_pending_order(db: AsyncSession, user_id: int):
     query = (

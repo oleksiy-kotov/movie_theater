@@ -25,7 +25,7 @@ COPY pyproject.toml poetry.lock* ./
 
 RUN poetry config virtualenvs.create false \
     && poetry install --no-root --no-interaction --no-ansi
-RUN pip install celery[redis] redis
+RUN pip install celery[redis] redis stripe
 
 COPY . .
 

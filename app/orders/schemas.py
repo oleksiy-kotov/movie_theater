@@ -4,6 +4,11 @@ from typing import List
 from decimal import Decimal
 from app.orders.models import OrderStatus
 
+
+class CheckoutResponse(BaseModel):
+    order_id: int
+    checkout_url: str
+
 class OrderItemSchema(BaseModel):
     movie_id: int
     price_at_order: Decimal

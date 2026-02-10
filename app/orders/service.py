@@ -1,12 +1,18 @@
+import stripe
 from fastapi import HTTPException, status
+from app.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.cart import service as cart_service
 from app.orders import crud as order_crud
 from app.cart import crud as cart_crud
 from app.orders.models import OrderStatus
+from app.payments.models import PaymentModel
 
 
-async def initiate_checkout(db: AsyncSession, user_id: int):
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+async def initiate_checkout(db: AsyncSession, user_id: int, user_email: str):
     existing_order = await order_crud.get_pending_order(db, user_id)
     if existing_order:
         raise HTTPException(
@@ -15,7 +21,6 @@ async def initiate_checkout(db: AsyncSession, user_id: int):
         )
 
     cart_details = await cart_service.get_cart_details(db, user_id)
-
     if not cart_details["items"]:
         raise HTTPException(status_code=400, detail="Cart is empty")
 
@@ -30,23 +35,53 @@ async def initiate_checkout(db: AsyncSession, user_id: int):
         cart_details["total_price"],
         items_to_order
     )
-
+    await cart_crud.clear_cart(db, user_id)
     await db.commit()
-    return order
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'Order #{order.id}',
+                        'description': f'Purchase of {len(items_to_order)} movies',
+                    },
+                    'unit_amount': int(order.total_amount * 100),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+
+            success_url=f"{settings.FRONTEND_URL}/payment/success?order_id={order.id}",
+            cancel_url=f"{settings.FRONTEND_URL}/payment/cancel?order_id={order.id}",
+            customer_email=user_email,
+            metadata={"order_id": str(order.id)}
+        )
+
+        return {
+            "order_id": order.id,
+            "checkout_url": checkout_session.url
+        }
+
+    except Exception as e:
+        await order_crud.update_order_status(db, order.id, "canceled")
+        await db.commit()
+        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
 
 
 async def get_cart_details(db: AsyncSession, user_id: int):
     cart = await cart_crud.get_or_create_cart(db, user_id)
-
+    bought_ids = await cart_crud.get_bought_movie_ids(db, user_id)
     pending_order = await order_crud.get_pending_order(db, user_id)
 
     valid_items = []
     for item in cart.items:
-        is_bought = await cart_crud.is_movie_bought(db, user_id, item.movie_id)
-        if not is_bought:
-            valid_items.append(item)
-        else:
+        if item.movie_id in bought_ids:
             await cart_crud.remove_item_from_cart(db, cart.id, item.movie_id)
+        else:
+            valid_items.append(item)
 
     total_price = sum(item.movie.price for item in valid_items)
 
@@ -57,38 +92,35 @@ async def get_cart_details(db: AsyncSession, user_id: int):
         "pending_order_id": pending_order.id if pending_order else None
     }
 
-async def complete_order(db: AsyncSession, order_id: int, user_id: int):
-    order = await order_crud.get_order_by_id(db, order_id)
 
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    if order.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this order")
-
-    if order.status != OrderStatus.pending:
-        raise HTTPException(status_code=400, detail=f"Order cannot be completed. Current status: {order.status}")
-
+async def complete_order(db: AsyncSession, order_id: int, stripe_id: str):
     try:
+        order = await order_crud.get_order_by_id(db, order_id)
+        if not order or order.status == "paid":
+            return
+
+        order.status = "paid"
+
+        new_payment = PaymentModel(
+            order_id=order_id,
+            user_id=order.user_id,
+            amount=order.total_amount,
+            status="successful",
+            external_payment_id=stripe_id
+        )
+        db.add(new_payment)
+
         movie_ids = [item.movie_id for item in order.items]
-
-        await cart_crud.add_to_bought(db, user_id, movie_ids)
-
-        await order_crud.update_order_status(db, order_id, OrderStatus.paid)
-
-        cart = await cart_crud.get_or_create_cart(db, user_id)
-        await cart_crud.clear_cart(db, cart.id)
+        await order_crud.add_movies_to_user_library(db, order.user_id, movie_ids)
 
         await db.commit()
-        return {"message": "Payment successful. Movies added to your collection.", "order_id": order_id}
 
     except Exception as e:
         await db.rollback()
         raise HTTPException(
             status_code=500,
-            detail="Transaction failed during order completion. Please contact support."
+            detail="Critical error during payment finalization"
         )
-
 
 async def cancel_order(db: AsyncSession, order_id: int, user_id: int):
     order = await order_crud.get_order_by_id(db, order_id)

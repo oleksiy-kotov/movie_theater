@@ -1,14 +1,16 @@
-
 services:
   app:
     build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     env_file:
       - .env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/app
 
@@ -22,7 +24,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -67,7 +69,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     env_file:
-      .env
+      - .env
     volumes:
       - minio_data:/data
     healthcheck:
@@ -75,13 +77,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - theater_network
+
+  stripe:
+    image: stripe/stripe-cli
+    container_name: stripe_cli
+    command: listen --forward-to app:8000/payments/webhook --api-key ${STRIPE_SECRET_KEY} --log-level info
+    env_file:
+      - .env
+    depends_on:
+      - app
 
 volumes:
   postgres_data:
   minio_data:
-
-networks:
-  theater_network:
-    driver: bridge
