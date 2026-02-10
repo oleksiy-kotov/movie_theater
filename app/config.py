@@ -56,8 +56,10 @@ class Settings(BaseSettings):
         return f"http://{self.S3_STORAGE_HOST}:{self.S3_STORAGE_PORT}"
 
     # Stripe
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_PUBLIC_KEY: str = ""
+    STRIPE_SECRET_KEY: str
+    STRIPE_PUBLISHABLE_KEY: str
+    STRIPE_WEBHOOK_SECRET: str
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Redis
     REDIS_URL: str = "redis://redis:6379"

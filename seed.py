@@ -1,7 +1,12 @@
 import asyncio
-from sqlalchemy import select
+
 from app.database import AsyncSessionLocal
-from app.auth.models import UserGroupModel
+
+from sqlalchemy import select
+from app.auth.models import *
+from app.movies.models import *
+from app.cart.models import *
+from app.database import Base
 
 
 async def seed_data():

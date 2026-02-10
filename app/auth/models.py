@@ -23,6 +23,10 @@ from sqlalchemy.orm import (
 
 from app.database import Base
 from app.core.security import hash_password, verify_password, generate_secure_token
+from app.cart.models import CartModel, bought_movies_table
+from typing import TYPE_CHECKING, List
+if TYPE_CHECKING:
+    from app.movies.models import MovieModel
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -92,6 +96,15 @@ class UserModel(Base):
 
     profile: Mapped[Optional["UserProfileModel"]] = relationship(
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    cart: Mapped["CartModel"] = relationship(
+        "CartModel", back_populates="user", uselist=False
+    )
+
+    bought_movies: Mapped[List["MovieModel"]] = relationship(
+        "MovieModel",
+        secondary=bought_movies_table,
+        back_populates="buyers"
     )
 
     def __repr__(self):
